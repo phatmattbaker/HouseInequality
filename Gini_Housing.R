@@ -48,9 +48,9 @@ tusdf <- group_by(tusdf,price) %>%
   filter(price > 50000, proptype!="Land") ## 50,000 is arbitrary, but there are some definite funny ones < 10,000
 
 ## remove postcodes outside 40km radius (CAREFUL, CHOPPING A LOT)
-# postcodes30km <- c(2000,2006,2007,2008,2009,2010,2011,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035,2036,2037,2038,2039,2040,2041,2042,2043,2044,2045,2046,2047,2048,2049,2050,2055,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2071,2072,2073,2074,2075,2076,2077,2079,2080,2081,2082,2084,2085,2086,2087,2088,2089,2090,2092,2093,2094,2095,2096,2097,2099,2100,2101,2102,2103,2104,2105,2106,2107,2108,2110,2111,2112,2113,2114,2115,2116,2117,2118,2119,2120,2121,2122,2125,2126,2127,2128,2130,2131,2132,2133,2134,2135,2136,2137,2138,2140,2141,2142,2143,2144,2145,2146,2147,2148,2150,2151,2152,2153,2154,2155,2156,2158,2159,2160,2161,2162,2163,2164,2165,2166,2168,2170,2172,2173,2176,2177,2190,2191,2192,2193,2194,2195,2196,2197,2198,2199,2200,2203,2204,2205,2206,2207,2208,2209,2210,2211,2212,2213,2214,2216,2217,2218,2219,2220,2221,2222,2223,2224,2225,2226,2227,2228,2229,2230,2231,2232,2233,2234)
-# tusdf <- group_by(tusdf,postcode) %>%
-#   filter(postcode %in% postcodes30km)
+postcodes30km <- c(2000,2006,2007,2008,2009,2010,2011,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035,2036,2037,2038,2039,2040,2041,2042,2043,2044,2045,2046,2047,2048,2049,2050,2055,2060,2061,2062,2063,2064,2065,2066,2067,2068,2069,2070,2071,2072,2073,2074,2075,2076,2077,2079,2080,2081,2082,2084,2085,2086,2087,2088,2089,2090,2092,2093,2094,2095,2096,2097,2099,2100,2101,2102,2103,2104,2105,2106,2107,2108,2110,2111,2112,2113,2114,2115,2116,2117,2118,2119,2120,2121,2122,2125,2126,2127,2128,2130,2131,2132,2133,2134,2135,2136,2137,2138,2140,2141,2142,2143,2144,2145,2146,2147,2148,2150,2151,2152,2153,2154,2155,2156,2158,2159,2160,2161,2162,2163,2164,2165,2166,2168,2170,2172,2173,2176,2177,2190,2191,2192,2193,2194,2195,2196,2197,2198,2199,2200,2203,2204,2205,2206,2207,2208,2209,2210,2211,2212,2213,2214,2216,2217,2218,2219,2220,2221,2222,2223,2224,2225,2226,2227,2228,2229,2230,2231,2232,2233,2234)
+tusdf <- group_by(tusdf,postcode) %>%
+  filter(postcode %in% postcodes30km)
 
 
 housetypes <- c("House","Cottage","Semi","Terrace","Townhouse","Villa")
@@ -58,7 +58,8 @@ unittypes <- c("Duplex","Flat","Unit")
 
 # include only Houses
 housedf <- group_by(tusdf,price) %>%
-  filter(price > 0, proptype %in% housetypes)
+  filter(price > 0, proptype %in% housetypes) # %>%
+  # filter(year == 2016)
 
 #include only Units
 unitdf <- group_by(tusdf,price) %>%
@@ -67,7 +68,8 @@ unitdf <- group_by(tusdf,price) %>%
 # filter so have at least ten sales per suburb, calculate mean, min/max price and number entries
 housesubs <- group_by(housedf, suburb) %>%
   summarise(n_entries = n(), mprice = mean(price), sp = sd(price), minprice = min(price), maxprice = max(price)) %>%
-  filter(n_entries > 100)
+  # filter(n_entries > 100)
+  filter(n_entries >= 50) ## if you reduce years.
 
 unitsubs <- group_by(unitdf, suburb) %>%
   summarise(n_entries = n(), mprice = mean(price), sp = sd(price), minprice = min(price), maxprice = max(price)) %>%
@@ -79,10 +81,10 @@ housesubtus <- housedf[housedf$suburb %in% housesubs$suburb,]
 unitsubtus <- unitdf[unitdf$suburb %in% unitsubs$suburb,]
 
 ## postcodes below, but just doing suburbs for now
-postcodes <- group_by(tusdf,postcode) %>%
-  filter(price > 0, proptype %in% housetypes) %>%
-  summarise(n_post = n(),mprice = mean(price), sp = sd(price), minprice = min(price), maxprice = max(price)) %>%
-  filter(n_post > 100)
+# postcodes <- group_by(tusdf,postcode) %>%
+#   filter(price > 0, proptype %in% housetypes) %>%
+#   summarise(n_post = n(),mprice = mean(price), sp = sd(price), minprice = min(price), maxprice = max(price)) %>%
+#   filter(n_post > 100)
 
 posttus <- tusdf[tusdf$postcode %in% postcodes$postcode,]
 
@@ -93,9 +95,9 @@ unit_gini_sub <- group_by(unitsubtus,suburb) %>%## duplicate or change for house
   summarise(gini = ineq(price))
 unit_gini_sub <- inner_join(unit_gini_sub,unitsubs)
 
-house_gini_sub <- group_by(housesubtus,suburb) %>%## duplicate or change for houses vs units
-  summarise(gini = ineq(price))
-house_gini_sub <- inner_join(house_gini_sub,housesubs)
+house_gini_sub <- group_by(housesubtus,suburb) %>% ## duplicate or change for houses vs units
+  summarise(gini = ineq(price), quant10 = quantile(price,c(1,9)/10)[1], quant90 = quantile(price,c(1,9)/10)[2])
+house_gini_sub <- inner_join(house_gini_sub,housesubs) ## careful not sure if this will make a problem later on, introducing quants
 
 
 h_top20sub <- arrange(house_gini_sub,desc(gini))[1:20,]
@@ -121,9 +123,12 @@ yearindex <- c(2012,2013,2014,2015,2016)
 for (i in 1:5) {
   h_giniyearlist[[i]] <- group_by(housesubtus, suburb) %>%
     filter(year==yearindex[i]) %>%
-    summarise(ny_entries = n(), mprice = mean(price), sp = sd(price), minprice = min(price), maxprice = max(price), giniyear = ineq(price)) %>%
+    summarise(ny_entries = n(), mprice = mean(price), quant10 = quantile(price,c(1,9)/10)[1], quant90 = quantile(price,c(1,9)/10)[2], sp = sd(price), minprice = min(price), maxprice = max(price), giniyear = ineq(price)) %>%
     filter(ny_entries > 100) ## need the double filter as only filtered previously >100 over all 5 years
-  names(h_giniyearlist[[i]])[7] = paste("gini",yearindex[i], sep = "") ## change name for later join
+  names(h_giniyearlist[[i]])[9] = paste("gini",yearindex[i], sep = "") ## change name for later join
+  names(h_giniyearlist[[i]])[4] = paste("q10",yearindex[i], sep = ".") ## change name for later join
+  names(h_giniyearlist[[i]])[5] = paste("q90",yearindex[i], sep = ".") ## change name for later join
+  names(h_giniyearlist[[i]])[3] = paste("mean",yearindex[i], sep = ".") ## change name for later join
 }
 
 u_giniyearlist <- list('vector')
@@ -138,8 +143,12 @@ for (i in 1:5) {
 
 ## calculate gini by year using Reduce and merge and discarding other columns
 hgby <- Reduce(function(x, y) merge(x, y, by="suburb"),h_giniyearlist)
-keepers <- c("suburb","gini2012","gini2013","gini2014","gini2015","gini2016")
-hgby<- hgby[,keepers]
+# keepers <- c("suburb","gini2012","gini2013","gini2014","gini2015","gini2016")
+qkeepers <- c("suburb","q10.2012","q10.2013","q10.2014","q10.2015","q10.2016")
+mkeepers <- c("suburb","mean.2012","mean.2013","mean.2014","mean.2015","mean.2016")
+# hgby<- hgby[,keepers]
+qhgby <- hgby[,qkeepers]
+mhgby <- hgby[,mkeepers]
 
 ugby <- Reduce(function(x, y) merge(x, y, by="suburb"),u_giniyearlist)
 keepers <- c("suburb","gini2012","gini2013","gini2014","gini2015","gini2016")
@@ -164,6 +173,34 @@ for (i in 1:dim(hgbym)[1]) {
   templm <- lm(hgbym[i,] ~ yearindex)
   gradient[i] <- templm$coefficients[2]
 }
+
+qhgby <- as.matrix(qhgby) ## can easily functionalise this
+qgrad = vector()
+for (i in 1:dim(qhgby)[1]) {
+  templm <- lm(qhgby[i,2:6] ~ yearindex)
+  qgrad[i] <- templm$coefficients[2]
+}
+qhgbym <- cbind(qhgby,t(t(round(qgrad))))
+sort3.qhgby <- qhgbym[order(qhgbym[,7]),]
+
+mhgby <- as.matrix(mhgby)
+mgrad = vector()
+for (i in 1:dim(mhgby)[1]) {
+  templm <- lm(mhgby[i,2:6] ~ yearindex)
+  mgrad[i] <- templm$coefficients[2]
+}
+mhgbym <- cbind(mhgby,t(t(round(mgrad))))
+sort3.mhgby <- mhgbym[order(mhgbym[,7]),]
+
+mtrend <- tbl_df(sort3.mhgby) %>% arrange(suburb)
+qtrend <- tbl_df(sort3.qhgby) %>% arrange(suburb)
+names(mtrend)[7] <- "mgrad"
+names(qtrend)[7] <- "qgrad"
+ratiotrend <- as.numeric(mtrend$mgrad) / as.numeric(qtrend$qgrad)
+mtrend[,8] <- ratiotrend
+qtrend[,8] <- ratiotrend
+sort_mtrend <- arrange(mtrend,desc(V8))
+sort_qtrend <- arrange(qtrend,desc(V8))
 
 hgby[,9] <- gradient
 names(hgby)[9] <- "gradient"
@@ -368,6 +405,19 @@ for (suburbcheck in keepsuburb) {  ## loop not complete currently
 cumquantmat
 }
 
+priceratio <- function(typesubtus,keepsuburb) {
+  for (suburbcheck in keepsuburb) {  ## loop not complete currently
+    subofintA <- group_by(typesubtus,suburb) %>%
+      filter(suburb == suburbcheck) 
+    quantA <- summarise(subofintA,nqu_entries = n(), quant10 = quantile(price,c(1,9)/10)[1], medianprice = median(price), quant90 = quantile(price,c(1,9)/10)[2])
+    cumsubindex <- as.character(suburbcheck)
+    mq10 <- sum(subofintA[which(subofintA$price<quantA$quant10),]$price)/(quantA$nqu_entries/10) ## mean, /10 because decile
+    mq90 <- sum(subofintA[which(subofintA$price>quantA$quant90),]$price)/(quantA$nqu_entries/10)
+    ratio <- mq90/mq10
+  }
+  ratio
+}
+
 cqm <- cumquant(housesubtus,housetop5gini$suburb)
 subsums <- colSums(cqm)
 (subsums[4]/subsums[3]) / (subsums[2]/subsums[1])
@@ -389,13 +439,13 @@ barplot(cqm,beside=TRUE,legend=rownames(cqm))
 
 numberabovebelow <- function(housedf,targetsuburb,targetabove,targetbelow) {
   housesabove2012 <- group_by(housedf,suburb) %>%
-    filter(year == 2012, suburb == targetsuburb, price >targetabove) 
+    filter(year == 2012, suburb %in% targetsuburb, price >targetabove) 
   housesbelow2012 <- group_by(housedf,suburb) %>%
-    filter(year == 2012, suburb == targetsuburb, price < targetbelow)
+    filter(year == 2012, suburb %in% targetsuburb, price < targetbelow)
   housesabove2016 <- group_by(housedf,suburb) %>%
-    filter(year == 2016, suburb == targetsuburb, price >targetabove)
+    filter(year == 2016, suburb %in% targetsuburb, price >targetabove)
   housesbelow2016 <- group_by(housedf,suburb) %>%
-    filter(year == 2016, suburb == targetsuburb, price < targetbelow) 
+    filter(year == 2016, suburb %in% targetsuburb, price < targetbelow) 
      numbers <- c(dim(housesabove2012)[1],dim(housesbelow2012)[1],dim(housesabove2016)[1],dim(housesbelow2016)[1])
  numbers
 }
@@ -458,7 +508,28 @@ names(bargexpsubmat)[5] <- "suburb"
 bargexpall <- left_join(bargexpsubmat,house_gini_sub)
 bargexpall <- left_join(bargexpall,sort3.hgby)
 
+## expensive suburb summaries
 
+expensive_summary <- function(targetsubtus,keeplist) {
+  expsubtus <- group_by(targetsubtus,suburb) %>%
+    filter(suburb %in% keeplist)
+    mprice <- mean(expsubtus$price)
+    q10 <- quantile(expsubtus$price,c(1,9)/10)[1]
+    q90 <- quantile(expsubtus$price,c(1,9)/10)[2]
+    mq10 <- sum(expsubtus[which(expsubtus$price<q10),]$price)/(dim(expsubtus)[1]/10)
+    mq90 <- sum(expsubtus[which(expsubtus$price>q90),]$price)/(dim(expsubtus)[1]/10)
+    results <- c(mq10,mprice,mq90)
+    results
+    # summarise(mprice = mean(price),quant10 = quantile(price,c(1,9)/10)[1], medianprice = median(price), quant90 = quantile(price,c(1,9)/10)[2])
+  # for (suburbcheck in keeplist) {
+  #   subofintA <- group_by(targetsubtus,suburb) %>% filter(suburb == suburbcheck)
+  #   q10 <- quantile(subofintA$price,c(1,9)/10)[1]
+  #   q90 <- quantile(subofintA$price,c(1,9)/10)[2]
+  # expsubtus[which(expsubtus$suburb==suburbcheck),6] <- sum(subofintA[which(subofintA$price<q10),]$price)/(dim(subofintA)[1]/10)
+  # expsubtus[which(expsubtus$suburb==suburbcheck),7] <- sum(subofintA[which(subofintA$price>q90),]$price)/(dim(subofintA)[1]/10)
+  # }
+  # expsubtus
+}
 
 ### expensive in specific suburb
 
@@ -481,7 +552,91 @@ write.csv(EdmExp,file="EdmExp.csv")
 
 write.csv(gini_post,file="AllPostcodes_over100sales_Gini.csv")
 
+## all histograms
+# for (i in 1:dim(housesubs)[1]) {
+#   tempsub <- housesubs$suburb[i]
+#   sub <- group_by(housesubtus,suburb) %>%
+#     filter(suburb == tempsub)
+#   pricesub <- sub$price
+#   n <- dim(sub)[1]
+#   filestr <- paste(tempsub,n,sep="_")
+#   filestr <- paste(filestr,"_hist.pdf",sep = "")
+#   pdf(filestr)
+#   hist(pricesub,breaks=seq(10000,50000000,200000))
+#   dev.off()
+# }
+
+histsub <- function(propertysubtus,suburb) {
+  tempsub <- suburb
+  sub <- group_by(propertysubtus,suburb) %>%
+    filter(suburb == tempsub)
+  pricesub <- sub$price
+  hist(pricesub)
+}
 # 
 # filter(year==yearindex[i]) %>%
 #   summarise(ny_entries = n(), mprice = mean(price), sp = sd(price), minprice = min(price), maxprice = max(price), giniyear = ineq(price)) %>%
 #   filter(ny_entries > 100) ## need the double filter as only filtered previously >100 over all 5 years
+
+
+######### q10 vs median -- simple calculations and numbers.
+
+house_median_sub <- group_by(housesubtus,suburb) %>% ## duplicate or change for houses vs units
+  summarise(gini = ineq(price), quant10 = quantile(price,c(1,9)/10)[1], quant90 = quantile(price,c(1,9)/10)[2], medprice = median(price),valrat = quant10/medprice,n_entries = n())
+sort_med <- arrange(house_median_sub,valrat) %>%
+  filter(medprice>1e6)
+
+value_ratios <- function(targetsubtus,targetyear,pricefilter) {
+  valrat <- group_by(targetsubtus,suburb) %>%
+    filter(year == targetyear) %>%
+    summarise(gini = ineq(price), quant10 = quantile(price,c(1,9)/10)[1], quant90 = quantile(price,c(1,9)/10)[2], medprice = median(price),valrat = quant10/medprice,n_entries = n(), rawval =(medprice-quant10)) %>%
+    filter(medprice>pricefilter,n_entries >= 50) %>%
+    arrange(valrat)
+  valrat
+}
+
+groupvalrat <- function(targetsubtus,keeplist,targetyear,pricefilter) {
+  keepsubtus <- group_by(targetsubtus,suburb) %>%
+    filter(suburb %in% keeplist)
+  
+  mprice <- mean(expsubtus$price)
+  q10 <- quantile(expsubtus$price,c(1,9)/10)[1]
+  q90 <- quantile(expsubtus$price,c(1,9)/10)[2]
+  mq10 <- sum(expsubtus[which(expsubtus$price<q10),]$price)/(dim(expsubtus)[1]/10)
+  mq90 <- sum(expsubtus[which(expsubtus$price>q90),]$price)/(dim(expsubtus)[1]/10)
+  results <- c(mq10,mprice,mq90)
+  results
+}
+
+numcheaperthanmedian <- function(targetsubtus,targetyear,multiplier,pricefilter) {
+  milsubs <- group_by(targetsubtus,suburb) %>%
+    summarise(medprice = median(price)) %>%
+    filter(medprice>pricefilter)
+  milsubtus <- targetsubtus[targetsubtus$suburb %in% milsubs$suburb,]  
+  medval <- group_by(milsubtus,suburb) %>%
+    filter(year == targetyear,price<(median(price)*multiplier)) %>%
+    summarise(ncheap = n())
+  numcheaper <- sum(medval$ncheap)
+  numcheaper
+}
+
+valrat2012 <- group_by(housesubtus,suburb) %>%
+  filter(year == 2012) %>%
+  summarise(quant10_2012 = quantile(price,c(1,9)/10)[1], med2012 = median(price),valrat2012 = quant10_2012/med2012,n_2012 = n())
+
+valrat2016 <- group_by(housesubtus,suburb) %>%
+  filter(year == 2016) %>%
+  summarise(quant10_2016 = quantile(price,c(1,9)/10)[1], med2016 = median(price),valrat2016 = quant10_2016/med2016,n_2016 = n())
+
+valcomp <- inner_join(valrat2012,valrat2016) %>%
+  filter(n_2012 >= 20, n_2016 >= 20)
+
+valcomp[,10] <- valcomp[,"valrat2016"] / valcomp[,"valrat2012"]
+names(valcomp)[10] <- "valdiff"
+
+milsubs <- group_by(housesubtus,suburb) %>%
+  summarise(medprice = median(price)) %>%
+  filter(medprice>1e6)
+
+
+valrat
